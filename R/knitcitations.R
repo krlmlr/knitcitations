@@ -1,6 +1,6 @@
-# This file contains internal functions which handle 
+# This file contains internal functions which handle
 # getting citation metadata and tracking what has
-# already been cited.  
+# already been cited.
 
 
 knitcitations <- new.env(hash=TRUE)
@@ -14,10 +14,10 @@ knit_cite <- function(x, ...){   # the method that citet/p loop over
   record_as_cited(entry)
 }
 
-get_bib_list <- function() 
+get_bib_list <- function()
   mget(ls(envir = knitcitations), envir=knitcitations)
 
-get_bib <- function() 
+get_bib <- function()
   do.call("c", get_bib_list())
 
 is.bibkey <- function(x){
@@ -30,7 +30,7 @@ is.bibkey <- function(x){
 }
 
 get_by_bibkey <- function(key){
-  bib <- get_bib_list() 
+  bib <- get_bib_list()
   keys <- sapply(bib, function(b) b$key)
   bib[keys %in% key][[1]]
 }
@@ -49,14 +49,14 @@ fix_duncan <- function(entry){
 
 tweak <- function(entry, BibEntry = TRUE){
     # Make sure every entry has a year and a key.
-    entry <- fix_duncan(entry) 
+    entry <- fix_duncan(entry)
     if (is.null(entry$year))
       entry$year <- format(Sys.time(), "%Y")
     if(is.null(entry$key))
       entry <- make_key(entry)
   if(BibEntry)
     as.BibEntry(entry)
-  else 
+  else
     entry
 }
 
@@ -68,18 +68,19 @@ make_key <- function(entry){
   n <- gsub(" ", "_", n)
   n <- paste(n, entry$year, sep="_")
 
-  entry$key  <- iconv(n, to = "ASCII//TRANSLIT")
+  # ASCII/TRANSLIT may add special characters on macOS
+  entry$key  <- gsub("[^A-Za-z0-9]", "", iconv(n, to = "ASCII//TRANSLIT"))
   get_unique_key(entry)
 }
 
 
 is.pdf <- function(x){
-  if(file.exists(x)){ 
+  if(file.exists(x)){
     out <- gsub(".*\\.(pdf)", "\\1", x) == "pdf"
   } else {
     out <- FALSE
   }
-  out 
+  out
 }
 
 is.url <- function(x){
@@ -87,28 +88,28 @@ is.url <- function(x){
 }
 
 
-entry_exists <- function(hash) 
+entry_exists <- function(hash)
   hash %in% ls(envir = knitcitations)
 
 
-update_biblio <- function(hash, entry) 
-  assign(hash, entry, envir=knitcitations) 
+update_biblio <- function(hash, entry)
+  assign(hash, entry, envir=knitcitations)
 
 
 inline_format <- function(entry, ...)
    paste0("@", entry$key)
- 
+
 
 get_matching_key <- function(entry){
   hash <- check_unique(entry)
-  matching_entry <- get(hash, envir = knitcitations) 
+  matching_entry <- get(hash, envir = knitcitations)
   entry$key <- matching_entry$key
   entry
 }
 
 
 get_unique_key <- function(entry){
-  bib <- get_bib_list() 
+  bib <- get_bib_list()
   if(length(bib) > 0){
     keys <- sapply(bib, function(x) x$key)
     recursive_key_update(entry, keys, 1)
@@ -118,7 +119,7 @@ get_unique_key <- function(entry){
 }
 
 
-recursive_key_update <- function(entry, keys, i){ 
+recursive_key_update <- function(entry, keys, i){
   if(entry$key %in% keys){
     entry$key <- paste0(entry$key, letters[i])
     i <- i + 1
@@ -129,8 +130,8 @@ recursive_key_update <- function(entry, keys, i){
 }
 
 
-check_unique <- function(entry){  
-  entry$key <- "common" # Not unique if only keys are different 
+check_unique <- function(entry){
+  entry$key <- "common" # Not unique if only keys are different
   digest(unlist(entry))
 }
 
